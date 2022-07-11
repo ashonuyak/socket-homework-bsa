@@ -4,8 +4,7 @@
   "description": "Starter for HTTP / WS homework. Binary Studio Academy",
   "main": "index.js",
   "scripts": {
-    "start": "npm run build && node ./build/server.js",
-    "build": "tsc -b"
+    "start": "ts-node ./src/server.ts"
   },
   "keywords": [
     "bsa",
