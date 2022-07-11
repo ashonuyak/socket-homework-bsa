@@ -261,5 +261,8 @@ socket.on('DISPLAY_ROOM', (roomname) => {
   )
   roomElement.style.display = 'flex'
 })
+socket.on('DELETE_DISCONNECTED_USER_CARD', (username) => {
+	removeUserElement(username)
+})
 
 addRoomButton.addEventListener('click', createRoom)

@@ -184,5 +184,21 @@ export default (io: Server) => {
 			if (rooms[roomIndex].users.length === config.MAXIMUM_USERS_FOR_ONE_ROOM - 1) io.emit('DISPLAY_ROOM', roomname);
 			io.emit('UPDATE_CONNECTED', { name: roomname, users: rooms[roomIndex].users });
 		})
+		socket.on("disconnect", () => {
+			console.log(username)
+			rooms.forEach(room => console.log(room))
+      const quitedRoom = rooms.find(room => room.users.find(user => user.name === username ))
+			console.log(quitedRoom)
+			if (quitedRoom) {
+				console.log('alo')
+				rooms.forEach(room => {
+					if (room.name === quitedRoom.name) {
+						room.users.forEach(user => {
+							io.to(user.id).emit('DELETE_DISCONNECTED_USER_CARD', username)
+						})
+					}
+				})
+			}	
+    });
 	});
 };
