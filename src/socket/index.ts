@@ -9,6 +9,15 @@ const getUpdatedRoom = (name: string, user?: string, id?: string) => {
 	if (user) rooms[roomIndex].users.push({ name: user, id: id!, status: false, percentOfTextDone: 0, userTime: 60 });
 	return rooms[roomIndex];
 }
+const emitForRoom = ({ io, roomname, message, params }) => {
+	rooms.forEach(room => {
+		if (room.name === roomname) {
+			room.users.forEach(user => {
+				io.to(user.id).emit(message, params)
+			})
+		}
+	})
+}
 
 export default (io: Server) => {
 	io.on('connection', socket => {
@@ -54,13 +63,7 @@ export default (io: Server) => {
 					return room.name === roomname;
 				}));
 			}
-			rooms.forEach(room => {
-				if (room.name === roomname) {
-					room.users.forEach(user => {
-						io.to(user.id).emit('UPDATE_ROOM', { name: updatedRoom.name, users: updatedRoom.users })
-					})
-				}
-			})
+			emitForRoom({ io, roomname, message: 'UPDATE_ROOM', params: { name: updatedRoom.name, users: updatedRoom.users }})
 			if (updatedRoom.users.length === config.MAXIMUM_USERS_FOR_ONE_ROOM) io.emit('HIDE_ROOM', roomname);
 			io.emit('UPDATE_CONNECTED', { name: updatedRoom.name, users: updatedRoom.users });
 		})
@@ -71,44 +74,20 @@ export default (io: Server) => {
 			rooms[roomIndex].users[userIndex].status = status;
 			const notReady = rooms[roomIndex].users.find(user => !user.status );
 			if (!notReady) {
-				rooms.forEach(room => {
-					if (room.name === roomname) {
-						room.users.forEach(user => {
-							io.to(user.id).emit('START_TIMER', roomname)
-						})
-					}
-				})
+				emitForRoom({ io, roomname, message: 'START_TIMER', params: roomname})
 				io.emit('HIDE_ROOM', roomname);
 			}
-			rooms.forEach(room => {
-				if (room.name === roomname) {
-					room.users.forEach(user => {
-						io.to(user.id).emit('UPDATE_ROOM', { name: roomname, users: rooms[roomIndex].users })
-					})
-				}
-			})
+			emitForRoom({ io, roomname, message: 'UPDATE_ROOM', params: { name: roomname, users: rooms[roomIndex].users }})
 		})
 
 		socket.on('GET_TEXT', (roomname) => {
 			const randomText = texts[Math.round(Math.random() * 6)]
-			rooms.forEach(room => {
-				if (room.name === roomname) {
-					room.users.forEach(user => {
-						io.to(user.id).emit('RECEIVE_TEXT', { randomText, roomname })
-					})
-				}
-			})
+			emitForRoom({ io, roomname, message: 'RECEIVE_TEXT', params: { randomText, roomname }})
 		})
 
 		socket.on('FIND_PROGRESS', ({ notReady, entire, roomname }) => {
 			const percent = 100 - 100 * notReady / entire;
-			rooms.forEach(room => {
-				if (room.name === roomname) {
-					room.users.forEach(user => {
-						io.to(user.id).emit('SET_PROGRESS', { percent, username, roomname })
-					})
-				}
-			})
+			emitForRoom({ io, roomname, message: 'SET_PROGRESS', params: { percent, username, roomname }})
 		})
 
 		socket.on('USER_FINISHED_GAME', ({ percent, username, roomname, timeLefted }) => {
@@ -120,13 +99,7 @@ export default (io: Server) => {
 
 			const areAllFinished = rooms[roomIndex].users.find(user => user.percentOfTextDone !== percent)
 			if (!areAllFinished) {
-				rooms.forEach(room => {
-					if (room.name === roomname) {
-						room.users.forEach(user => {
-							io.to(user.id).emit('GAME_OVER', { users: rooms[roomIndex].users, roomname })
-						})
-					}
-				})
+				emitForRoom({ io, roomname, message: 'GAME_OVER', params: { users: rooms[roomIndex].users, roomname }})
 				rooms[roomIndex].users.forEach(user => {
 					user.percentOfTextDone = 0;
 					user.status = false;
@@ -141,13 +114,7 @@ export default (io: Server) => {
 			const percent = 100 - 100 * notReady / entire;
 			rooms[roomIndex].users[userIndex].percentOfTextDone = percent;
 			
-			rooms.forEach(room => {
-				if (room.name === roomname) {
-					room.users.forEach(user => {
-						io.to(user.id).emit('GAME_OVER', { users: rooms[roomIndex].users, roomname })
-					})
-				}
-			})
+			emitForRoom({ io, roomname, message: 'GAME_OVER', params: { users: rooms[roomIndex].users, roomname }})
 			rooms[roomIndex].users.forEach(user => {
 				user.percentOfTextDone = 0;
 				user.status = false;
@@ -164,40 +131,19 @@ export default (io: Server) => {
 				io.emit('DELETE_ROOM', roomname);
 				return;
 			}
-			rooms.forEach(room => {
-				if (room.name === roomname) {
-					room.users.forEach(user => {
-						io.to(user.id).emit('UPDATE_ROOM', { name: roomname, users: rooms[roomIndex].users, quitedUser: username })
-					})
-				}
-			})
+			emitForRoom({ io, roomname, message: 'UPDATE_ROOM', params: { name: roomname, users: rooms[roomIndex].users, quitedUser: username }})
+
 			const checkForRoomReadiness = rooms[roomIndex].users.find(user => user.status === false);
 			if (!checkForRoomReadiness) {
-				rooms.forEach(room => {
-					if (room.name === roomname) {
-						room.users.forEach(user => {
-							io.to(user.id).emit('START_TIMER', roomname)
-						})
-					}
-				})
+				emitForRoom({ io, roomname, message: 'START_TIMER', params: roomname})
 			}
 			if (rooms[roomIndex].users.length === config.MAXIMUM_USERS_FOR_ONE_ROOM - 1) io.emit('DISPLAY_ROOM', roomname);
 			io.emit('UPDATE_CONNECTED', { name: roomname, users: rooms[roomIndex].users });
 		})
 		socket.on("disconnect", () => {
-			console.log(username)
-			rooms.forEach(room => console.log(room))
       const quitedRoom = rooms.find(room => room.users.find(user => user.name === username ))
-			console.log(quitedRoom)
 			if (quitedRoom) {
-				console.log('alo')
-				rooms.forEach(room => {
-					if (room.name === quitedRoom.name) {
-						room.users.forEach(user => {
-							io.to(user.id).emit('DELETE_DISCONNECTED_USER_CARD', username)
-						})
-					}
-				})
+				emitForRoom({ io, roomname: quitedRoom.name, message: 'DELETE_DISCONNECTED_USER_CARD', params: username})
 			}	
     });
 	});
