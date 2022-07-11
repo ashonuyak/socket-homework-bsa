@@ -14,8 +14,15 @@ const onClickSubmitButton = () => {
 	if (!inputValue) {
 		return;
 	}
-	sessionStorage.setItem('username', inputValue);
-	window.location.replace('/game');
+	const socket = io('', { query: { inputValue } });
+	socket.emit('VALIDATE_USERNAME', inputValue)
+	socket.on('USER_ALREADY_EXISTS', (user) => {
+    alert(`User "${user}" already exists`);
+  })
+	socket.on('USER_CREATED', () => {
+		sessionStorage.setItem('username', inputValue)
+    window.location.replace('/game')
+	})
 };
 
 const onKeyUp = ev => {

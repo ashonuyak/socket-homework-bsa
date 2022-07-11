@@ -70,4 +70,4 @@ const removeUserElement = username => document.querySelector(`.user[data-usernam
 
 const getReadySign = ready => (ready ? '🟢' : '🔴');
 
-export { appendUserElement, changeReadyStatus, setProgress, removeUserElement };
+export { appendUserElement, changeReadyStatus, setProgress, removeUserElement, getReadySign };

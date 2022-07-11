@@ -37,7 +37,7 @@ const showResultsModal = ({ usersSortedArray, onClose = () => {} }) => {
 			tagName: 'div',
 			className: 'user-result',
 			attributes: { 'data-username': username, 'data-place': place },
-			innerElements: [`${place}) ${username}`],
+			innerElements: [`${place}) user: ${username}`],
 		});
 	});
 
